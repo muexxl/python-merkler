@@ -5,16 +5,16 @@ except ImportError:
     from disutils.core import setup
 
 config = [
-    'description': 'My Project',
-    'author': 'Beppo',
-    'url': 'url to My Project',
-    'download_url': 'where to download at',
-    'author_email': '2018Beppo@gmail.com',
+    'description': 'Merkler',
+    'author': 'Muexx',
+    'url': 'https://github.com/muexxl/python-merkler',
+    'download_url': 'https://github.com/muexxl/python-merkler.git',
+    'author_email': 'stephan.muekusch@gmail.com',
     'version': '0.1',
     'install_requires': ['nose'],
-    'packages': ['NAME'],
+    'packages': ['merkler'],
     'scripts': [],
-    'name': 'projectname'
+    'name': 'merkler'
 ]
 
 setup(**config)
