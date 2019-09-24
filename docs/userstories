@@ -1,0 +1,12 @@
+
+AS a ___________ I want to ____________ so that I ___________
+
+AS a user I WANT to have a module for merkle trees SO THAT I can build merkle trees from files
+
+AS a enduser I WANT to verify merkle chains SO THAT I proof the membership of my file in the tree
+
+AS a user I WANT to store merkle trees as a file SO THAT I can distribute them
+AS a user I WANT to load and verify merkle trees SO THAT I can verify them
+AS a user I WANT to create merkle trees from a list of files SO THAT I can merklize my files in a merkle trees
+AS a user I WANT to extend an existing merkle tree SO THAT I can grow the merkle tree
+AS a developer  I WANT to test my code so that I can ensure it runs smooth
