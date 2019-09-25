@@ -1,5 +1,6 @@
 import hashlib
 import json
+import binascii
 
 class Merkler:
 
@@ -47,6 +48,19 @@ class Merkler:
         json_string=json.dumps(self.export_merkle_as_string())
         return json_string
 
+    def import_merkle_from_json(self, json_string):
+        string_merkle_tree=json.loads(json_string)
+        self.import_merkle_from_string(string_merkle_tree)
+
+    def import_merkle_from_string(self, string_merkle_tree):
+        merkle_tree = []
+        for hashes_as_string in string_merkle_tree:
+            hashes=[]
+            for hash_as_string in hashes_as_string:
+                hashes.append(binascii.unhexlify(hash_as_string.encode()))
+            merkle_tree.append(hashes[:])
+        self.merkle_tree = merkle_tree
+
     def is_hash(self, data):
 
         result = True
@@ -60,3 +74,27 @@ class Merkler:
 
     def calc_hash(self, data):
         return hashlib.sha256(data).digest()
+
+
+def test():
+    data='test'.encode()
+    hash=hashlib.sha256(data).digest()
+
+    m=Merkler()
+    for i in range(6):
+        m.add_hash(hash)
+        hash=hashlib.sha256(hash).digest()
+
+    m.build_merkle_tree()
+    m.merkle_tree
+
+    merkle_json=m.export_merkle_as_json()
+    merkle_string=m.export_merkle_as_string()
+    m.import_merkle_from_string(merkle_string)
+    m.import_merkle_from_json(merkle_json)
+    x=json.loads(merkle_json)
+    merkle_string==x
+    import binascii
+    binascii.unhexlify(x[0][0].encode())==m.merkle_tree[0][0]
+    b'asdf'*1
+    
