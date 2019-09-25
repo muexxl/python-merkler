@@ -64,13 +64,21 @@ class Merkler(object):
             merkle_tree.append(hashes[:])
         self.merkle_tree = merkle_tree
 
+    def verify(self):
+        m=Merkler()
+        m.merkle_tree[0]=self.merkle_tree[0][:]
+        m.build_merkle_tree()
+        result= m.merkle_tree[-1][0] == self.merkle_tree[-1][0]
+
+        return result
+
     def get_merkle_branch(self, target_hash):
         try:
             position=self.merkle_tree[0].index(target_hash)
         except ValueError:
             print ('Hash not found in current Merkle tree')
 
-        mb=MerkleBranch()
+        mb = MerkleBranch()
         mb.startHashPosition = position
         mb.startHash = target_hash # add starting hash
 
@@ -105,13 +113,12 @@ class Merkler(object):
         return hashlib.sha256(data).digest()
 
 class MerkleBranch(object):
-    startHash= b''
-    startHashPosition = 0
-    merkleRootHash=b''
-    hashes = []
 
     def __init__(self):
-        pass
+        self.startHash= b''
+        self.startHashPosition = 0
+        self.merkleRootHash=b''
+        self.hashes = []
 
     def verify(self):
         position = self.startHashPosition
@@ -132,76 +139,31 @@ class MerkleBranch(object):
         result= currentHash == self.merkleRootHash
         return result
 
-def test():
-    data='test'.encode()
-    hash=hashlib.sha256(data).digest()
-
-    m=Merkler()
-    for i in range(5):
-        m.add_hash(hash)
-        hash=hashlib.sha256(hash).digest()
-
-    m.build_merkle_tree()
-    m.merkle_tree
-    mbranch= None
-    mbranch=m.get_merkle_branch(m.merkle_tree[0][0])
-    mbranch.verify()
-    mbranch.startHash
-    mbranch.merkleRootHash
-    mbranch.startHashPosition
-    mbranch.hashes
-    mbranch.startHash=b'e\xd0!\xde\xe3=\xdd\x87\xae}\x82@%\xbdY\xd2B7r?`gt\x98Q\xf0\x81\xf5\xde\xc9\x84c'
-    position = mbranch['position']
-    startHash = mbranch['startHash']
-    currentHash = startHash
-    for neighborHash in mbranch['hashes'][:]:
-        if position%2 == 0 :
-            leftHash = currentHash
-            rightHash= neighborHash
-        else :
-            leftHash = neighborHash
-            rightHash= currentHash
-
-        position = position//2
-        data = leftHash + rightHash
-        currentHash=hashlib.sha256(data).digest()
-
-    result= currentHash == mbranch['merkleRootHash']
-    print ('Result : {}'.format(result))
-
-    target_hash=m.merkle_tree[0][12].hex()
-    m.merkle_tree[0][-1].hex()
-    position=m.merkle_tree[0].index(target_hash)
-    merkle_branch= {
-        'position': position ,
-        'hashes':[]
+    def exportAsJSON(self):
+        mb={
+            'startHash': binascii.hexlify(self.startHash).decode('utf-8'),
+            'startHashPosition' :self.startHashPosition,
+            'hashes': [binascii.hexlify(hash).decode('utf-8') for hash in self.hashes],
+            'merkleRootHash' : binascii.hexlify(self.merkleRootHash).decode('utf-8')
         }
-    merkle_tree=m.merkle_tree
 
-    merkle_branch['hashes'].append(merkle_tree[0][position]) # add target hash
-    for hashes in merkle_tree[:-1]:
-        pass
-        if position%2 == 0 :
-            neighbor = position + 1
-        elif position%2 == 1:
-            neighbor = position - 1
+        return json.dumps(mb)
 
-        if neighbor == len(hashes): #avoid error if last entry needs to be doubled
-            neighbor = position
+    def loadFromJSON(self, json_string):
+        mb=json.loads(json_string)
+        self.startHash= binascii.unhexlify(mb['startHash'].encode())
+        self.startHashPosition = mb['startHashPosition']
+        self.merkleRootHash=binascii.unhexlify(mb['merkleRootHash'].encode())
+        self.hashes = [binascii.unhexlify(hashstring.encode()) for hashstring in mb['hashes']]
 
-        merkle_branch['hashes'].append(hashes[neighbor].hex())
-
-        position=neighbor//2
-
-    merkle_branch['hashes'].append(merkle_tree[-1][0]) # add final result
+    def saveAsJSONFile(self, filename):
+        jstring = self.exportAsJSON()
+        with open(filename, 'w') as f:
+            f.write(jstring)
 
 
-    merkle_json=m.export_merkle_as_json()
-    merkle_string=m.export_merkle_as_string()
-    m.import_merkle_from_string(merkle_string)
-    m.import_merkle_from_json(merkle_json)
-    x=json.loads(merkle_json)
-    merkle_string==x
-    import binascii
-    binascii.unhexlify(x[0][0].encode())==m.merkle_tree[0][0]
-    b'asdf'*1
+    def loadFromJSONFile(self, filename):
+        with open(filename, 'r') as f:
+            jstring=f.read()
+        self.loadFromJSON(jstring)
+        return self.verify()
