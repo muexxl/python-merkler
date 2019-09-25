@@ -2,7 +2,7 @@ import hashlib
 import json
 import binascii
 
-class Merkler:
+class Merkler(object):
 
     def __init__(self):
         self.merkle_tree = []
@@ -14,8 +14,11 @@ class Merkler:
             raise Exception ("Merkler.add_hash was called with non hash data")
         self.merkle_tree[0].append(data)
 
+
     def build_merkle_tree(self):
-        hashes = self.merkle_tree[-1][:]
+        self.merkle_tree=self.merkle_tree[:1] # remove previous merkle tree entries, if any
+        hashes = self.merkle_tree[0][:] #get base level
+
         while len(hashes) > 1: #check if highest level is reached
             hashes = self.calculate_next_merkle_tree_level(hashes)[:]
             self.merkle_tree.append(hashes)
@@ -61,6 +64,32 @@ class Merkler:
             merkle_tree.append(hashes[:])
         self.merkle_tree = merkle_tree
 
+    def get_merkle_branch(self, target_hash):
+        try:
+            position=self.merkle_tree[0].index(target_hash)
+        except ValueError:
+            print ('Hash not found in current Merkle tree')
+
+        mb=MerkleBranch()
+        mb.startHashPosition = position
+        mb.startHash = target_hash # add starting hash
+
+        for hashes in self.merkle_tree[:-1]:
+
+            if position%2 == 0 :
+                neighbor = position + 1
+            elif position%2 == 1:
+                neighbor = position - 1
+            if neighbor == len(hashes): #refer to last entry, if pointer is out of range
+                neighbor = position
+
+            mb.hashes.append(hashes[neighbor])
+
+            position=neighbor//2
+
+        mb.merkleRootHash = self.merkle_tree[-1][0] # add merkle root
+        return mb
+
     def is_hash(self, data):
 
         result = True
@@ -75,18 +104,97 @@ class Merkler:
     def calc_hash(self, data):
         return hashlib.sha256(data).digest()
 
+class MerkleBranch(object):
+    startHash= b''
+    startHashPosition = 0
+    merkleRootHash=b''
+    hashes = []
+
+    def __init__(self):
+        pass
+
+    def verify(self):
+        position = self.startHashPosition
+        startHash = self.startHash
+        currentHash = self.startHash
+        for neighborHash in self.hashes:
+            if position%2 == 0 :
+                leftHash = currentHash
+                rightHash= neighborHash
+            else :
+                leftHash = neighborHash
+                rightHash= currentHash
+
+            position = position//2
+            data = leftHash + rightHash
+            currentHash=hashlib.sha256(data).digest()
+
+        result= currentHash == self.merkleRootHash
+        return result
 
 def test():
     data='test'.encode()
     hash=hashlib.sha256(data).digest()
 
     m=Merkler()
-    for i in range(6):
+    for i in range(5):
         m.add_hash(hash)
         hash=hashlib.sha256(hash).digest()
 
     m.build_merkle_tree()
     m.merkle_tree
+    mbranch= None
+    mbranch=m.get_merkle_branch(m.merkle_tree[0][0])
+    mbranch.verify()
+    mbranch.startHash
+    mbranch.merkleRootHash
+    mbranch.startHashPosition
+    mbranch.hashes
+    mbranch.startHash=b'e\xd0!\xde\xe3=\xdd\x87\xae}\x82@%\xbdY\xd2B7r?`gt\x98Q\xf0\x81\xf5\xde\xc9\x84c'
+    position = mbranch['position']
+    startHash = mbranch['startHash']
+    currentHash = startHash
+    for neighborHash in mbranch['hashes'][:]:
+        if position%2 == 0 :
+            leftHash = currentHash
+            rightHash= neighborHash
+        else :
+            leftHash = neighborHash
+            rightHash= currentHash
+
+        position = position//2
+        data = leftHash + rightHash
+        currentHash=hashlib.sha256(data).digest()
+
+    result= currentHash == mbranch['merkleRootHash']
+    print ('Result : {}'.format(result))
+
+    target_hash=m.merkle_tree[0][12].hex()
+    m.merkle_tree[0][-1].hex()
+    position=m.merkle_tree[0].index(target_hash)
+    merkle_branch= {
+        'position': position ,
+        'hashes':[]
+        }
+    merkle_tree=m.merkle_tree
+
+    merkle_branch['hashes'].append(merkle_tree[0][position]) # add target hash
+    for hashes in merkle_tree[:-1]:
+        pass
+        if position%2 == 0 :
+            neighbor = position + 1
+        elif position%2 == 1:
+            neighbor = position - 1
+
+        if neighbor == len(hashes): #avoid error if last entry needs to be doubled
+            neighbor = position
+
+        merkle_branch['hashes'].append(hashes[neighbor].hex())
+
+        position=neighbor//2
+
+    merkle_branch['hashes'].append(merkle_tree[-1][0]) # add final result
+
 
     merkle_json=m.export_merkle_as_json()
     merkle_string=m.export_merkle_as_string()
@@ -97,4 +205,3 @@ def test():
     import binascii
     binascii.unhexlify(x[0][0].encode())==m.merkle_tree[0][0]
     b'asdf'*1
-    
