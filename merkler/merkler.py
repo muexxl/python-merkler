@@ -9,21 +9,21 @@ class Merkler(object):
         hashes=[]
         self.merkle_tree.append(hashes)
 
-    def add_hash(self, data):
-        if not self.is_hash(data):
+    def addHash(self, data):
+        if not self.isHash(data):
             raise Exception ("Merkler.add_hash was called with non hash data")
         self.merkle_tree[0].append(data)
 
 
-    def build_merkle_tree(self):
+    def BuildMerkleTree(self):
         self.merkle_tree=self.merkle_tree[:1] # remove previous merkle tree entries, if any
         hashes = self.merkle_tree[0][:] #get base level
 
         while len(hashes) > 1: #check if highest level is reached
-            hashes = self.calculate_next_merkle_tree_level(hashes)[:]
+            hashes = self.CalculateNextMerkleTreeLevel(hashes)[:]
             self.merkle_tree.append(hashes)
 
-    def calculate_next_merkle_tree_level(self, hashes):
+    def CalculateNextMerkleTreeLevel(self, hashes):
         current_level_hashes = hashes[:]
         next_level_hashes=[]
 
@@ -33,12 +33,22 @@ class Merkler(object):
         while len(current_level_hashes) >=2:
             hash1 = current_level_hashes.pop(0)
             hash2 = current_level_hashes.pop(0)
-            next_hash = self.calc_hash(hash1 + hash2)
+            next_hash = self.calcHash(hash1 + hash2)
             next_level_hashes.append(next_hash)
 
         return next_level_hashes
 
-    def export_merkle_as_string(self):
+    def addFile(self, filename):
+        sha256_hash = hashlib.sha256()
+        with open(filename,"rb") as f:
+            # Read and update hash string value in blocks of 4K
+            for byte_block in iter(lambda: f.read(4096),b""):
+                sha256_hash.update(byte_block)
+        fileHash=sha256_hash.digest()
+        self.addHash(fileHash)
+        return binascii.hexlify(fileHash).decode('utf-8')
+
+    def exportMerkleTreeAsString(self):
         string_merkle_tree=[]
         for level in self.merkle_tree:
             string_level=[]
@@ -47,15 +57,26 @@ class Merkler(object):
             string_merkle_tree.append(string_level[:])
         return string_merkle_tree
 
-    def export_merkle_as_json(self):
-        json_string=json.dumps(self.export_merkle_as_string())
+    def exportMerkleTreeAsJSON(self):
+        json_string=json.dumps(self.exportMerkleTreeAsString())
         return json_string
 
-    def import_merkle_from_json(self, json_string):
-        string_merkle_tree=json.loads(json_string)
-        self.import_merkle_from_string(string_merkle_tree)
+    def saveAsJSONFile(self, filename):
+        jstring = self.exportMerkleTreeAsJSON()
+        with open(filename, 'w') as f:
+            f.write(jstring)
 
-    def import_merkle_from_string(self, string_merkle_tree):
+    def loadFromJSONFile(self, filename):
+        with open(filename, 'w') as f:
+            jstring=f.read()
+        self.importMerkleTreeFromJSON(jstring)
+        return self.verify()
+
+    def importMerkleTreeFromJSON(self, json_string):
+        string_merkle_tree=json.loads(json_string)
+        self.importMerkleTreeFromString(string_merkle_tree)
+
+    def importMerkleTreeFromString(self, string_merkle_tree):
         merkle_tree = []
         for hashes_as_string in string_merkle_tree:
             hashes=[]
@@ -67,12 +88,12 @@ class Merkler(object):
     def verify(self):
         m=Merkler()
         m.merkle_tree[0]=self.merkle_tree[0][:]
-        m.build_merkle_tree()
+        m.BuildMerkleTree()
         result= m.merkle_tree[-1][0] == self.merkle_tree[-1][0]
 
         return result
 
-    def get_merkle_branch(self, target_hash):
+    def getMerkleBranch(self, target_hash):
         try:
             position=self.merkle_tree[0].index(target_hash)
         except ValueError:
@@ -98,7 +119,7 @@ class Merkler(object):
         mb.merkleRootHash = self.merkle_tree[-1][0] # add merkle root
         return mb
 
-    def is_hash(self, data):
+    def isHash(self, data):
 
         result = True
 
@@ -109,7 +130,7 @@ class Merkler(object):
 
         return result
 
-    def calc_hash(self, data):
+    def calcHash(self, data):
         return hashlib.sha256(data).digest()
 
 class MerkleBranch(object):
