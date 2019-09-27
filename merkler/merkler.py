@@ -241,21 +241,6 @@ class MerkleBranch(object):
         return self.verify()
 
 
-def test():
-    files = []
-    raise ValueError ('unexpeted')
-    import sys
-    path=os.path.join(os.getcwd(), '')
-    wk=os.walk(path)
-    m=Merkler()
-    m.merkle_tree
-    m.addAllFilesInFolderRecursive(os.getcwd())
-    m.addMultipleFiles(['setup.py', 'LICENSE'])
-    m.BuildMerkleTree()
-    m.exportMerkleTreeAsString()
-    mb=m.getMerkleBranchFromFile('tests/merkler_tests.py')
-    mb.verify()
-    mb.exportAsJSON()
     dir(w)
     os.path.isdir('.git')
     string='asdsdaf'
